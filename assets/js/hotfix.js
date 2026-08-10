@@ -2,8 +2,8 @@
 const D=window.WL_DATA;
 if(!D)return;
 
-// 2.5.2：延续 2.5.1 证物来源/隐藏证物修复，并修复 D07 乱序推理与阶段目标停滞。
-D.version='2.5.2';
+// 2.5.3：在 2.5.2 的证物链/D07 修复基础上，重做双难度目标系统并细化阶段小目标。
+D.version='2.5.3';
 D.hiddenEvidence=['E30'];
 const hiddenSet=new Set(D.hiddenEvidence);
 
@@ -94,20 +94,137 @@ function countText(s){
 }
 function hasState(s,id){return (s?.evidence||[]).includes(id)||(s?.deductions||[]).includes(id)}
 
-// 顶部目标按实际已完成链条动态更新，避免玩家已经推出 D12/D09 后仍只看到泛泛的
-// “分别解释两起房间”，却不知道 D07 还缺哪一环。
-function advancedDualObjective(s){
-  if(!s||hasState(s,'D07')||!hasState(s,'D11'))return '';
-  if(s.mode==='independent'){
-    if(!hasState(s,'D06'))return'补全林岳受伤后返回07房的行动链，再比较两起密室';
-    if(!hasState(s,'E25'))return'核对两房结构是否存在可通行暗道，再完成双密室比较';
-    return hasState(s,'D12')?'用已经确认的两案过程补全双密室比较结论':'比较林岳与唐砚各自回房、内锁与死亡发生的先后关系';
+// 2.5.3 目标系统：同一谜题链不改难度，只改变“系统主动告诉玩家多少”。
+// 初次侦探 = 主目标 + 当前步骤；独立调查 = 只显示主目标，不主动暴露地点、编号或组合配方。
+function objectivePlan(s){
+  if(!s)return{main:'继续调查',step:''};
+  const independent=s.mode==='independent';
+  const plan=(main,step='')=>({main,step:independent?'':step});
+  const has=id=>hasState(s,id);
+  const oldLinks=()=>D.people.filter(p=>(p.oldEvidence||[]).some(id=>(s.evidence||[]).includes(id))).length;
+
+  if(!s.flags?.room)return plan(
+    independent?'核对入住信息并熟悉山庄':'确认入住信息并找到自己的房间',
+    '先在前台核对登记簿，把房卡上的“06”对应到正确房名。'
+  );
+  if(!s.flags?.oldroom)return plan(
+    independent?'重新检查一年前的07房旧案':'复原警方为何把07旧站房判断为“密室自杀”',
+    '进入07旧站房，核对门锁、窗槽与旧案记录；这一阶段只解释警方当年的初始判断，不要提前猜真正死因。'
+  );
+  if(!s.flags?.murder)return plan(
+    independent?'整理林岳留下的旧案材料':'整理林岳留下的明信片与旧案记录',
+    '把07房已经确认的现场事实记录下来，等待新的案件变化。'
+  );
+  if(!s.flags?.route)return plan(
+    independent?'解开九张明信片留下的路线':'确定九张明信片的完整阅读顺序',
+    '从“第九张没有雪”开始，沿每张卡背面的下一张编号追出完整闭环。'
+  );
+  if(!s.flags?.phrase)return plan(
+    independent?'解开九张明信片的第二层信息':'从九张明信片中定位旧档案藏匿处',
+    '顺序已经确定；继续比较日期与题字，提取“具体地点 + 具体位置”，不要只写一个模糊地点名。'
+  );
+  if(!has('D01')||!has('D02'))return plan(
+    independent?'建立可信的统一时间轴':'统一相机与厨房挂钟的时间基准',
+    '先判断哪只钟偏慢、哪只偏快，再把两套记录校正到同一真实时间。'
+  );
+  if(!has('D03'))return plan(
+    independent?'判断雪地与窗户证据的证明力':'解释“没有脚印”究竟能证明什么',
+    '结合09晴峰房窗槽与雪地状态，区分“没人从窗户进出”与“房内一定没有其他过程”这两件事。'
+  );
+  if(!has('D04'))return plan(
+    independent?'重建停电期间发生的物品变化':'还原停电前后的杯子位置变化',
+    '对照餐桌记录、停电时段与相关证词，确认哪只杯子的位置在黑暗中发生了变化。'
+  );
+  if(!s.flags?.identity)return plan(
+    independent?'核验旧档案中的身份链':'确认方致远与旧资料中的方志远是否为同一人',
+    '进入地下档案，比较不同年代影像里稳定的面部特征；至少确认两处不会随年龄轻易改变的特征。'
+  );
+  if(!has('D10'))return plan(
+    independent?'重建1998事故关系网':'把八名核心住客逐一放回1998事故关系网',
+    `当前已核实 ${oldLinks()}/8。逐份打开地下档案中的人物原始材料；八个人都要有独立可核验的旧案联系。`
+  );
+  if(!has('D11'))return plan(
+    independent?'解释这次山庄聚集为何不是偶然':'解释八名旧案关系人为何在同一个尽调周末出现',
+    '关系网已经齐全；把“1998旧案关系”与本周收购尽调/邀请安排放在一起，形成聚集原因。'
+  );
+  if(!has('D06'))return plan(
+    independent?'重建林岳受伤后的行动':'判断林岳受伤后是否仍能自行返回07房',
+    '重新核对林岳旧伤记录、旧站血滴方向和鞋底残留，先回答“他受伤后还能不能自己离开旧站”。'
+  );
+  if(!has('D07')){
+    if(!has('E25'))return plan(
+      independent?'比较两起密室的形成过程':'比较两起“从内部锁住”的房间',
+      '先回07旧站房核对维修图纸，排除07与09房之间存在可供成人通行的隐藏通道。'
+    );
+    if(has('D12'))return plan(
+      independent?'比较两起密室的形成过程':'比较两起“从内部锁住”的房间',
+      '两案各自的完整过程已经成立。现在比较“最后是谁完成内锁”与“致死干预发生在锁门前还是锁门后”，形成双密室结论。'
+    );
+    if(has('D05'))return plan(
+      independent?'比较两起密室的形成过程':'比较两起“从内部锁住”的房间',
+      '林岳侧行动链已经成立，唐砚侧也已确认回房前后存在第二轮干预；把这两条过程与维修图纸放在一起比较。'
+    );
+    return plan(
+      independent?'比较两起密室的形成过程':'先补齐唐砚侧过程，再比较两起密室',
+      '林岳侧已经能解释。唐砚侧先确认“餐厅计划失败后仍存在第二轮干预”，再回到双密室比较。'
+    );
   }
-  if(!hasState(s,'D06'))return'林岳线还缺 D06：用 E18＋E19＋E26 证明他受伤后能自行返回07房';
-  if(!hasState(s,'E25'))return'回07旧站房核对维修图纸 E25，排除07/09房存在可通行暗道';
-  if(hasState(s,'D12'))return'推理板组合 D06＋D12＋E25，补全 D07“两起密室不是同一种机关”';
-  if(hasState(s,'D05'))return'推理板组合 D05＋D06＋E25，比较两起从内部锁住的房间';
-  return'先形成唐砚回房后的第二轮干预 D05，再与 D06、E25 比较两起密室';
+  if(!has('D12'))return plan(
+    independent?'重建唐砚真正的致死过程':'还原唐砚本人锁门之前发生的第二轮干预',
+    '双密室结构已经解释；现在围绕胃药、09房备用钥匙与随身药盒，确认真正的致死干预是在唐砚自行挂链之前完成。'
+  );
+  if(!has('D09'))return plan(
+    independent?'完成两案责任人的唯一性论证':'把林岳案与唐砚案连接成唯一责任链',
+    '把林岳旧站录音与已经确认的唐砚案手段放在同一条链上，判断两案责任人是否唯一重合。'
+  );
+  if(!s.flags?.final)return plan(
+    independent?'整理完整结案链':'整理“过程—动机—旧案责任”的完整结案链',
+    '关键推论已齐。进入结案页，用自己的话分别说明两起密室、明信片、聚集原因、身份隐瞒与责任人。'
+  );
+  return plan('案件已结','可从结局页导出存档或重新调查。');
+}
+
+function ensureObjectiveStyles(){
+  if(document.getElementById('wl-objective-253-style'))return;
+  const style=document.createElement('style');
+  style.id='wl-objective-253-style';
+  style.textContent=`
+    .objective .objective-step{display:block;margin-top:4px;font-size:12px;font-weight:500;line-height:1.42;opacity:.82;max-width:680px}
+    .objective .objective-step::before{content:'当前步骤 · ';font-weight:800;letter-spacing:.04em;opacity:.9}
+    .objective.objective-independent .objective-step{display:none}
+    .objective-card[data-objective253]{white-space:normal}
+    .case-objective-step{margin:.55rem 0 0;padding:.55rem .7rem;border-left:2px solid rgba(176,153,110,.5);font-size:.88rem;line-height:1.55;opacity:.88}
+    .case-objective-step b{margin-right:.35rem}
+    @media (max-width:900px){.objective .objective-step{font-size:11px;line-height:1.35}}
+  `;
+  document.head.appendChild(style);
+}
+
+function applyObjectiveUi(s){
+  const goal=objectivePlan(s);
+  ensureObjectiveStyles();
+  const header=document.querySelector('.objective');
+  if(header){
+    header.classList.toggle('objective-independent',s.mode==='independent');
+    const main=header.querySelector('b');
+    setText(main,goal.main);
+    let step=header.querySelector('.objective-step');
+    if(goal.step){
+      if(!step){step=document.createElement('small');step.className='objective-step';header.appendChild(step)}
+      setText(step,goal.step);
+    }else if(step){step.remove()}
+  }
+
+  const card=document.querySelector('.objective-card');
+  if(card){
+    card.dataset.objective253='1';
+    setText(card,goal.main);
+    let step=card.parentElement?.querySelector('.case-objective-step');
+    if(goal.step){
+      if(!step){step=document.createElement('p');step.className='case-objective-step';card.insertAdjacentElement('afterend',step)}
+      step.innerHTML='<b>当前步骤</b>'+goal.step;
+    }else if(step){step.remove()}
+  }
 }
 
 function setText(el,text){if(el&&el.textContent!==text)el.textContent=text}
@@ -130,8 +247,7 @@ function patchUi(){
     rule.appendChild(p);
   }
 
-  const dynamicObjective=advancedDualObjective(s);
-  if(dynamicObjective)setText(document.querySelector('.objective b'),dynamicObjective);
+  applyObjectiveUi(s);
 
   // 初次侦探模式在推理板给出“缺哪一环”的上下文说明；不替玩家自动形成推论。
   const dedResults=document.querySelector('.deduction-room .ded-results');
@@ -141,7 +257,7 @@ function patchUi(){
     const note=document.createElement('div');
     note.dataset.linChainNote='1';
     note.className='success-note';
-    note.innerHTML='<b>林岳线仍缺一个中间推论</b><p>D12只属于唐砚案。先把“旧伤记录＋旧站血滴方向＋鞋底纤维”组成林岳受伤后的行动链，再去连接旧站录音与D12。</p>';
+    note.innerHTML='<b>林岳线仍缺一个中间推论</b><p>D12只属于唐砚案。先判断林岳受伤后是否仍能自行离开旧站：重新核对旧伤、血滴方向与鞋底残留，再回到推理板形成行动链。</p>';
     dedResults.appendChild(note);
   }else if(!needLin&&oldLinNote){oldLinNote.remove()}
 
@@ -152,21 +268,34 @@ function patchUi(){
     note.dataset.d07ChainNote='1';
     note.className='success-note';
     let text='';
-    if(!hasState(s,'D06'))text='D07 先缺林岳侧中间结论：E18＋E19＋E26 → D06。';
-    else if(!hasState(s,'E25'))text='两案过程已经能比较，但还缺结构排除项：回07旧站房查看“维修图纸”取得 E25。';
-    else if(hasState(s,'D12'))text='你已经有更强的唐砚案结论。现在可直接选择 D06＋D12＋E25 形成 D07，不必倒回去重新猜旧组合。';
-    else text='选择 D05＋D06＋E25，即可比较两起“本人最后内锁、但致死过程不同”的案件。';
+    if(!hasState(s,'D06'))text='D07 之前还缺林岳侧行动结论：先用旧伤、血滴方向与鞋底残留判断他能否自行返回07房。';
+    else if(!hasState(s,'E25'))text='两案过程已经能比较，但还缺结构排除项：回07旧站房核对维修图纸，确认两房不存在可通行暗道。';
+    else if(hasState(s,'D12'))text='两起案件的独立过程和结构排除项已经齐全。现在比较“受害者最后内锁”与“致死过程发生在锁门之前”这两个共同点。';
+    else text='把两起案件各自的回房、内锁与致死过程放在一起比较；不要把“密室”误当成必须存在机关。';
     note.innerHTML=`<b>D07 双密室比较</b><p>${text}</p>`;
     dedResults.appendChild(note);
   }else if(!needDual&&oldDualNote){oldDualNote.remove()}
 }
 let queued=false;
-const scheduleUi=()=>{if(queued)return;queued=true;queueMicrotask(()=>{queued=false;patchUi()})};
-if(typeof MutationObserver!=='undefined'){
+const scheduleUi=()=>{if(queued)return;queued=true;const run=()=>{queued=false;patchUi()};if(typeof requestAnimationFrame==='function')requestAnimationFrame(run);else setTimeout(run,0)};
+function observeApp(){
+  const app=document.getElementById('app');
+  if(!app||typeof MutationObserver==='undefined')return;
+  // game.js 每次换页都会整体替换 #app；只监听根节点子级即可，避免观察整个 document 子树造成无意义回调。
   const observer=new MutationObserver(scheduleUi);
-  observer.observe(document.documentElement,{childList:true,subtree:true});
+  observer.observe(app,{childList:true});
 }
-window.addEventListener('DOMContentLoaded',scheduleUi,{once:true});
+if(document.readyState==='loading')window.addEventListener('DOMContentLoaded',()=>{observeApp();scheduleUi()},{once:true});
+else{observeApp();scheduleUi()}
+// 设置页切换难度时，game.js 只保存 mode 而不立即 render。主动重绘当前工具页，
+// 避免关闭设置后仍残留上一难度的目标/局部提示，直到玩家再点一次导航才更新。
+document.addEventListener('change',e=>{
+  if(e.target?.id!=='modeSel')return;
+  setTimeout(()=>{
+    const active=document.querySelector('[data-tool].active');
+    if(active)active.click();else scheduleUi();
+  },0);
+});
 setTimeout(scheduleUi,0);
 
 // 比原 selfTest 更严格：验证常规证物来源、隐藏证物隔离、D01-D12 可达性，
@@ -208,6 +337,19 @@ function audit(){
   if(unreachable.length)errs.push('unreachable-deductions:'+unreachable.join(','));
   for(const id of ['D07','D09','D11','D12'])if(!reachable.has(id))errs.push('final-chain-unreachable:'+id);
 
+  // 目标系统回归：两个难度必须使用同一主线，但初次侦探有小步骤、独立调查不泄露小步骤。
+  const baseFlags={room:true,oldroom:true,murder:true,route:true,phrase:true,identity:true,final:false};
+  const newbieLate={mode:'newbie',flags:baseFlags,evidence:['E25'],deductions:['D01','D02','D03','D04','D10','D11','D06','D12']};
+  const independentLate={...newbieLate,mode:'independent'};
+  const ng=objectivePlan(newbieLate),ig=objectivePlan(independentLate);
+  if(!/(密室|房间)/.test(ng.main)||!/(密室|房间)/.test(ig.main))errs.push('objective-main-stage-mismatch');
+  if(!ng.step)errs.push('newbie-objective-missing-step');
+  if(ig.step)errs.push('independent-objective-leaks-step');
+  const linGap=objectivePlan({...newbieLate,evidence:[],deductions:['D01','D02','D03','D04','D10','D11','D12']});
+  if(!/林岳/.test(linGap.main))errs.push('objective-does-not-prioritize-D06-gap');
+  const finalGoal=objectivePlan({...newbieLate,deductions:['D01','D02','D03','D04','D06','D07','D09','D10','D11','D12']});
+  if(!/结案/.test(finalGoal.main))errs.push('objective-final-goal-missing');
+
   const result={
     ok:errs.length===0,
     errors:errs,
@@ -217,9 +359,9 @@ function audit(){
     hidden:[...hiddenSet],
     d07Routes:dual?.needAny||[]
   };
-  console.info('[雾岭山庄 hotfix 2.5.2 audit]',result.ok?'PASS':result);
+  console.info('[雾岭山庄 hotfix 2.5.3 audit]',result.ok?'PASS':result);
   return result;
 }
-window.WL_HOTFIX_TEST={audit,regularEvidenceIds,hiddenEvidenceIds:()=>[...hiddenSet],advancedDualObjective};
+window.WL_HOTFIX_TEST={audit,regularEvidenceIds,hiddenEvidenceIds:()=>[...hiddenSet],objectivePlan};
 setTimeout(audit,0);
 })();
