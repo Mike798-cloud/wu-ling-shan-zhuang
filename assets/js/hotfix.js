@@ -2,8 +2,8 @@
 const D=window.WL_DATA;
 if(!D)return;
 
-// 2.7.0：提示册保留历史，并新增随当前工具页/地点变化的本页取证提示。
-D.version='2.7.0';
+// 2.8.0：补齐 D05 / D06 独立目标与三级提示，避免中间推论只以灰色前置突然出现。
+D.version='2.8.0';
 D.hiddenEvidence=['E30'];
 const hiddenSet=new Set(D.hiddenEvidence);
 
@@ -12,12 +12,25 @@ const hiddenSet=new Set(D.hiddenEvidence);
 D.hintDeductionTargets={
   snow:'D03',
   cups:'D04',
+  secondtrace:'D05',
   oldlinks:'D10',
   gathering:'D11',
+  linreturn:'D06',
   dual:'D07',
   secondround:'D12',
   culprit:'D09'
 };
+
+D.hints.secondtrace=[
+  '餐厅里的黑咖啡只能解释第一轮计划。再比较唐砚胃内容里两种成分的进入时间，判断他离开餐厅后是否还遭到另一轮干预。',
+  '先取得餐厅黑咖啡检验 E27、09房胃内容初检 E28 与发电机停电记录 E11；如果已经形成 D04，也可以直接把 D04 与 E28 比较。',
+  '请到推理板形成 D05：可用 D04＋E28；或用 E27＋E28＋E11。D05 形成后才继续调查真正的第二轮手段。'
+];
+D.hints.linreturn=[
+  '先单独回答林岳受伤后还能不能自己离开旧站，不要把唐砚案的材料混进这一步。',
+  '回看林岳旧伤记录、旧站血滴方向和红色绝缘纤维；三项共同说明他的伤势、移动方向和离站路径。',
+  '请到推理板用 E18＋E19＋E26 形成 D06“林岳受伤后自行返回07房”。'
+];
 
 const findSpot=(loc,id)=>D.locations?.[loc]?.spots?.find(s=>s[0]===id);
 const sameSet=(a,b)=>Array.isArray(a)&&Array.isArray(b)&&a.length===b.length&&a.every(x=>b.includes(x));
@@ -146,6 +159,10 @@ function objectivePlan(s){
   if(!has('D04'))return plan(
     independent?'重建停电期间发生的物品变化':'还原停电前后的杯子位置变化',
     '对照餐桌记录、停电时段与相关证词，确认哪只杯子的位置在黑暗中发生了变化。'
+  );
+  if(!has('D05'))return plan(
+    independent?'确认唐砚离开餐厅后是否仍遭干预':'先形成 D05：确认唐砚离开餐厅后仍遭第二次干预',
+    '进入推理板，把 D04 与 E28“胃内容初检”放在一起；也可使用 E27＋E28＋E11，形成 D05 后再继续追查第二轮手段。'
   );
   if(!s.flags?.identity)return plan(
     independent?'核验旧档案中的身份链':'确认方致远与旧资料中的方志远是否为同一人',
@@ -283,6 +300,7 @@ function patchUi(){
     if(!hasState(s,'D06'))text='D07 之前还缺林岳侧行动结论：先用旧伤、血滴方向与鞋底残留判断他能否自行返回07房。';
     else if(!hasState(s,'E25'))text='两案过程已经能比较，但还缺结构排除项：回07旧站房核对维修图纸，确认两房不存在可通行暗道。';
     else if(hasState(s,'D12'))text='两起案件的独立过程和结构排除项已经齐全。现在比较“受害者最后内锁”与“致死过程发生在锁门之前”这两个共同点。';
+    else if(!hasState(s,'D05'))text='唐砚侧仍缺 D05：先用 D04＋E28（或 E27＋E28＋E11）确认餐厅之后存在第二轮干预，再回来比较两起密室。';
     else text='把两起案件各自的回房、内锁与致死过程放在一起比较；不要把“密室”误当成必须存在机关。';
     note.innerHTML=`<b>D07 双密室比较</b><p>${text}</p>`;
     dedResults.appendChild(note);
@@ -357,15 +375,15 @@ function audit(){
 
   // 目标系统回归：两个难度必须使用同一主线，但初次侦探有小步骤、独立调查不泄露小步骤。
   const baseFlags={room:true,oldroom:true,murder:true,route:true,phrase:true,identity:true,final:false};
-  const newbieLate={mode:'newbie',flags:baseFlags,evidence:['E25'],deductions:['D01','D02','D03','D04','D10','D11','D06','D12']};
+  const newbieLate={mode:'newbie',flags:baseFlags,evidence:['E25'],deductions:['D01','D02','D03','D04','D05','D10','D11','D06','D12']};
   const independentLate={...newbieLate,mode:'independent'};
   const ng=objectivePlan(newbieLate),ig=objectivePlan(independentLate);
   if(!/(密室|房间)/.test(ng.main)||!/(密室|房间)/.test(ig.main))errs.push('objective-main-stage-mismatch');
   if(!ng.step)errs.push('newbie-objective-missing-step');
   if(ig.step)errs.push('independent-objective-leaks-step');
-  const linGap=objectivePlan({...newbieLate,evidence:[],deductions:['D01','D02','D03','D04','D10','D11','D12']});
+  const linGap=objectivePlan({...newbieLate,evidence:[],deductions:['D01','D02','D03','D04','D05','D10','D11','D12']});
   if(!/林岳/.test(linGap.main))errs.push('objective-does-not-prioritize-D06-gap');
-  const finalGoal=objectivePlan({...newbieLate,deductions:['D01','D02','D03','D04','D06','D07','D09','D10','D11','D12']});
+  const finalGoal=objectivePlan({...newbieLate,deductions:['D01','D02','D03','D04','D05','D06','D07','D09','D10','D11','D12']});
   if(!/结案/.test(finalGoal.main))errs.push('objective-final-goal-missing');
 
   const result={
@@ -377,7 +395,7 @@ function audit(){
     hidden:[...hiddenSet],
     d07Routes:dual?.needAny||[]
   };
-  console.info('[雾岭山庄 hotfix 2.7.0 audit]',result.ok?'PASS':result);
+  console.info('[雾岭山庄 hotfix 2.8.0 audit]',result.ok?'PASS':result);
   return result;
 }
 window.WL_HOTFIX_TEST={audit,regularEvidenceIds,hiddenEvidenceIds:()=>[...hiddenSet],objectivePlan};
