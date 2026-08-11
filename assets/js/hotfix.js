@@ -2,8 +2,8 @@
 const D=window.WL_DATA;
 if(!D)return;
 
-// 2.8.0：补齐 D05 / D06 独立目标与三级提示，避免中间推论只以灰色前置突然出现。
-D.version='2.8.0';
+// 2.8.1：修复“终夜结案”三级提示在不同高度和触摸设备上无法向下滚动的问题。
+D.version='2.8.1';
 D.hiddenEvidence=['E30'];
 const hiddenSet=new Set(D.hiddenEvidence);
 
@@ -395,7 +395,7 @@ function audit(){
     hidden:[...hiddenSet],
     d07Routes:dual?.needAny||[]
   };
-  console.info('[雾岭山庄 hotfix 2.8.0 audit]',result.ok?'PASS':result);
+  console.info('[雾岭山庄 hotfix 2.8.1 audit]',result.ok?'PASS':result);
   return result;
 }
 window.WL_HOTFIX_TEST={audit,regularEvidenceIds,hiddenEvidenceIds:()=>[...hiddenSet],objectivePlan};
