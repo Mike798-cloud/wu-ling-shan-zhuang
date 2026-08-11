@@ -1,12 +1,19 @@
 (()=>{'use strict';
-const norm=s=>String(s||'').toLowerCase().replace(/[\s，。、“”‘’；;：:,.!！?？/\\\-（）()【】\[\]]/g,'');
+const norm=s=>String(s||'').normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu,'');
 const disqualifyingNegation=v=>/(不是|并非|没有|并没有|并未|未曾|从未|不曾|不可能|不能|无法|不属于|不一致|完全不同|并不相同|否认|否定|非同一)/.test(norm(v));
 const includesAny=(v,terms)=>terms.some(t=>v.includes(norm(t)));
+const directNegationBefore=/(?:不是|并非|并不是|不可能是|不可能|不能是|不能|无法|不属于|不为|并没有|没有|并未|未|没|非)$/;
+const directNegationAfter=/^(?:不是|并非|没有|并没有|并未|未曾|从未|不曾|不成立|不属|不可能)/;
+function includesAffirmed(v,term){
+  const t=norm(term);let from=0;
+  while(t&&from<=v.length){const i=v.indexOf(t,from);if(i<0)return false;const before=v.slice(Math.max(0,i-7),i),after=v.slice(i+t.length,i+t.length+5);if(!directNegationBefore.test(before)&&!directNegationAfter.test(after))return true;from=i+t.length}
+  return false;
+}
 function finalAnswerOk(value,key,rules){
   const v=norm(value),rule=rules?.[key];
-  if(!rule||v.length<(rule.minLength||2)||disqualifyingNegation(v))return false;
+  if(!rule||v.length<(rule.minLength||2))return false;
   if((rule.forbidden||[]).some(t=>v.includes(norm(t))))return false;
-  return (rule.groups||[]).every(group=>includesAny(v,group));
+  return (rule.groups||[]).every(group=>group.some(term=>includesAffirmed(v,term)));
 }
 function roomAnswerOk(value){const v=norm(value);return /(?:^|[^0-9])0?6(?:[^0-9]|$)/.test(String(value||''))&&v.includes('鹿泉')&&!disqualifyingNegation(v)}
 function oldRoomAnswerOk(value){
@@ -23,5 +30,5 @@ function identityAnswerOk(value){
   const contrary=/(不是同一|并非同一|非同一|不同|不一致|无法确认|不能确认|否认同一)/.test(v);
   return hits>=2&&affirmative&&!contrary;
 }
-window.WL_VALIDATION={norm,disqualifyingNegation,finalAnswerOk,roomAnswerOk,oldRoomAnswerOk,phraseAnswerOk,identityAnswerOk};
+window.WL_VALIDATION={norm,disqualifyingNegation,finalAnswerOk,roomAnswerOk,oldRoomAnswerOk,phraseAnswerOk,identityAnswerOk,includesAffirmed};
 })();

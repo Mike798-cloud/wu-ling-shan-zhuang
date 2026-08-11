@@ -2,8 +2,8 @@
 const D=window.WL_DATA;
 if(!D)return;
 
-// 2.5.3：在 2.5.2 的证物链/D07 修复基础上，重做双难度目标系统并细化阶段小目标。
-D.version='2.5.3';
+// 2.6.0：保留 2.5.3 的证物链与双难度目标修复，并加入结案草稿持久化及答案容错。
+D.version='2.6.0';
 D.hiddenEvidence=['E30'];
 const hiddenSet=new Set(D.hiddenEvidence);
 
@@ -359,7 +359,7 @@ function audit(){
     hidden:[...hiddenSet],
     d07Routes:dual?.needAny||[]
   };
-  console.info('[雾岭山庄 hotfix 2.5.3 audit]',result.ok?'PASS':result);
+  console.info('[雾岭山庄 hotfix 2.6.0 audit]',result.ok?'PASS':result);
   return result;
 }
 window.WL_HOTFIX_TEST={audit,regularEvidenceIds,hiddenEvidenceIds:()=>[...hiddenSet],objectivePlan};
