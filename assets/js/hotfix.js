@@ -2,8 +2,8 @@
 const D=window.WL_DATA;
 if(!D)return;
 
-// 2.6.1：保留 2.6.0 的结案修复，并统一标明哪些提示必须在推理板形成推论。
-D.version='2.6.1';
+// 2.6.2：保留推理板提示说明，并加入按谜题独立记录、可回看的提示册。
+D.version='2.6.2';
 D.hiddenEvidence=['E30'];
 const hiddenSet=new Set(D.hiddenEvidence);
 
@@ -377,7 +377,7 @@ function audit(){
     hidden:[...hiddenSet],
     d07Routes:dual?.needAny||[]
   };
-  console.info('[雾岭山庄 hotfix 2.6.1 audit]',result.ok?'PASS':result);
+  console.info('[雾岭山庄 hotfix 2.6.2 audit]',result.ok?'PASS':result);
   return result;
 }
 window.WL_HOTFIX_TEST={audit,regularEvidenceIds,hiddenEvidenceIds:()=>[...hiddenSet],objectivePlan};
