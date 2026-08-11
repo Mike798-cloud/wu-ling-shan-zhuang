@@ -2,8 +2,8 @@
 const D=window.WL_DATA;
 if(!D)return;
 
-// 2.6.2：保留推理板提示说明，并加入按谜题独立记录、可回看的提示册。
-D.version='2.6.2';
+// 2.7.0：提示册保留历史，并新增随当前工具页/地点变化的本页取证提示。
+D.version='2.7.0';
 D.hiddenEvidence=['E30'];
 const hiddenSet=new Set(D.hiddenEvidence);
 
@@ -377,7 +377,7 @@ function audit(){
     hidden:[...hiddenSet],
     d07Routes:dual?.needAny||[]
   };
-  console.info('[雾岭山庄 hotfix 2.6.2 audit]',result.ok?'PASS':result);
+  console.info('[雾岭山庄 hotfix 2.7.0 audit]',result.ok?'PASS':result);
   return result;
 }
 window.WL_HOTFIX_TEST={audit,regularEvidenceIds,hiddenEvidenceIds:()=>[...hiddenSet],objectivePlan};
