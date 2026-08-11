@@ -2,10 +2,22 @@
 const D=window.WL_DATA;
 if(!D)return;
 
-// 2.6.0：保留 2.5.3 的证物链与双难度目标修复，并加入结案草稿持久化及答案容错。
-D.version='2.6.0';
+// 2.6.1：保留 2.6.0 的结案修复，并统一标明哪些提示必须在推理板形成推论。
+D.version='2.6.1';
 D.hiddenEvidence=['E30'];
 const hiddenSet=new Set(D.hiddenEvidence);
+
+// 这些提示给出的是“推论方向”，不是结案页文字答案。game.js 会根据难度模式：
+// 初次侦探显示可用证据链；独立调查只说明操作入口在推理板，不泄露组合配方。
+D.hintDeductionTargets={
+  snow:'D03',
+  cups:'D04',
+  oldlinks:'D10',
+  gathering:'D11',
+  dual:'D07',
+  secondround:'D12',
+  culprit:'D09'
+};
 
 const findSpot=(loc,id)=>D.locations?.[loc]?.spots?.find(s=>s[0]===id);
 const sameSet=(a,b)=>Array.isArray(a)&&Array.isArray(b)&&a.length===b.length&&a.every(x=>b.includes(x));
@@ -317,6 +329,12 @@ function audit(){
   for(const d of (D.deductions||[]))for(const set of (d.needAny||[]))for(const id of set)if(hiddenSet.has(id))hiddenInMain.push(`${d.id}:${id}`);
   if(hiddenInMain.length)errs.push('hidden-evidence-in-main-deduction:'+hiddenInMain.join(','));
 
+  for(const [hintKey,deductionId] of Object.entries(D.hintDeductionTargets||{})){
+    if(!D.hints?.[hintKey]?.length)errs.push('deduction-hint-missing:'+hintKey);
+    const target=(D.deductions||[]).find(d=>d.id===deductionId);
+    if(!target?.needAny?.length)errs.push('deduction-hint-target-missing:'+hintKey+':'+deductionId);
+  }
+
   const dual=(D.deductions||[]).find(d=>d.id==='D07');
   const advanced=['D06','D12','E25'];
   if(!dual?.needAny?.some(set=>sameSet(set,advanced)))errs.push('D07-missing-D06-D12-E25-route');
@@ -359,7 +377,7 @@ function audit(){
     hidden:[...hiddenSet],
     d07Routes:dual?.needAny||[]
   };
-  console.info('[雾岭山庄 hotfix 2.6.0 audit]',result.ok?'PASS':result);
+  console.info('[雾岭山庄 hotfix 2.6.1 audit]',result.ok?'PASS':result);
   return result;
 }
 window.WL_HOTFIX_TEST={audit,regularEvidenceIds,hiddenEvidenceIds:()=>[...hiddenSet],objectivePlan};
