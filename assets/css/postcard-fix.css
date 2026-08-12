@@ -1,0 +1,19 @@
+
+.wl-postcard-rule{
+  margin:.75rem 0 1rem;padding:.75rem .85rem;border:1px solid rgba(176,153,110,.42);
+  background:rgba(176,153,110,.08);display:grid;gap:.35rem;line-height:1.55
+}
+.wl-postcard-rule b{font-size:.82rem;letter-spacing:.08em}
+.wl-postcard-rule span{font-size:.88rem;opacity:.88}
+.wl-edge-mark{
+  margin:.85rem 0;padding:.7rem .8rem;border-top:1px dashed rgba(176,153,110,.55);
+  border-bottom:1px dashed rgba(176,153,110,.55);display:grid;grid-template-columns:auto 1fr;
+  align-items:center;gap:.25rem .8rem
+}
+.wl-edge-mark span{font-size:.78rem;letter-spacing:.08em;opacity:.7}
+.wl-edge-mark b{font-family:"KaiTi","STKaiti",serif;font-size:1.6rem;font-weight:700}
+.wl-edge-mark small{grid-column:1/-1;line-height:1.45;opacity:.72}
+@media(max-width:720px){
+  .wl-edge-mark b{font-size:1.4rem}
+  .wl-postcard-rule{padding:.65rem .7rem}
+}
