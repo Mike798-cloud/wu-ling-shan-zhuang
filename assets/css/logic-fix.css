@@ -1,0 +1,24 @@
+/* 雾岭山庄 3.1.1：叙事来源、谜题与证物获取逻辑补丁 */
+.wl-world-status,.wl-source-note,.wl-investigation-note,.wl-interview-source{border:1px solid rgba(163,137,93,.42);background:rgba(236,228,207,.08);padding:.75rem .9rem;line-height:1.65;margin:.75rem 0}
+.wl-world-status b,.wl-source-note b,.wl-investigation-note b,.wl-interview-source b{color:#bca374}
+.wl-interview-source{font-size:.88rem}
+.wl-hidden-source{display:none!important}
+.time-source.wl-missing{opacity:.72}
+.time-source.wl-missing b{font-weight:500;color:#8d8d89}
+.time-source .wl-source-state{font-size:.78rem;display:block;margin-top:.35rem;opacity:.8}
+.testimony.wl-unheard{display:none}
+.testimony .wl-testimony-source{display:block;font-size:.75rem;opacity:.72;margin:.25rem 0 .6rem}
+.wl-testimony-empty{padding:1rem;border:1px dashed rgba(163,137,93,.45);line-height:1.7}
+.wl-found-envelope{border-left:3px solid rgba(176,153,110,.6);padding-left:.8rem;margin-top:.75rem}
+.incident .wl-incident-steps{margin:.75rem 0;padding-left:1.15rem;line-height:1.7}
+.incident .wl-incident-steps li+li{margin-top:.35rem}
+@media(max-width:720px){.wl-world-status,.wl-source-note,.wl-investigation-note,.wl-interview-source{padding:.65rem .7rem}.incident .wl-incident-steps{padding-left:1rem}}
+.wl-identity-source{display:block;margin:.55rem 0 0;line-height:1.55;opacity:.76}
+.wl-time-bridge{padding:.65rem .75rem;background:rgba(176,153,110,.07);border-left:3px solid rgba(176,153,110,.45);line-height:1.65}
+/* 3.1.1：阻止时间分析页在补丁接管前短暂闪出答案；档案锁定状态更清晰 */
+.time-source:not(.wl-time-patched) b,.time-source:not(.wl-time-patched) [data-add-ev]{visibility:hidden}
+.wl-archive-locked{max-width:720px;margin:2rem auto}
+
+/* 隐藏奖励不再用 ?/1 暴露数量；显示层只呈现常规证物进度 */
+.wl-evidence-count{font-size:0!important}
+.wl-evidence-count::after{content:attr(data-wl-count);font-size:.82rem!important}
